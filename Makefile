@@ -14,8 +14,8 @@ SRC = 	basic_types.vhd \
     	reg.vhd \
     	add32.vhd \
     	mux2.vhd \
-	mux3.vhd \
-	mux4.vhd \
+		mux3.vhd \
+		mux4.vhd \
     	rom32.vhd \
     	reg32_ce.vhd \
     	reg_bank.vhd \
@@ -24,6 +24,7 @@ SRC = 	basic_types.vhd \
     	alu.vhd \
     	alu_ctl.vhd \
     	mem32.vhd \
+		hazard_unit.vhd \
     	mips_pipeline.vhd \
     	mips_tb.vhd
 
@@ -31,8 +32,8 @@ OBJ = 	basic_types.o \
     	reg.o \
     	add32.o \
     	mux3.o \
-	mux4.o \
-	mux2.o \
+		mux4.o \
+		mux2.o \
     	rom32.o \
     	reg32_ce.o \
     	reg_bank.o \
@@ -41,6 +42,7 @@ OBJ = 	basic_types.o \
     	alu.o \
     	alu_ctl.o \
     	mem32.o \
+		hazard_unit.o \
     	mips_pipeline.o \
     	mips_tb.o
 

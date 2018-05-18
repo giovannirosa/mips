@@ -21,18 +21,20 @@ architecture arq_mips_pipeline of mips_pipeline is
      
     -- IF Signal Declarations
     
-    signal IF_instr, IF_pc, IF_pc_next, IF_pc4, stall_PC : reg32 := (others => '0');
+    signal IF_instr, IF_pc, IF_pc_next, IF_pc4, IF_pc_stall : reg32 := (others => '0');
+	signal IF_pc_enable: std_logic;
 
     -- ID Signal Declarations
 
     signal ID_instr, ID_pc4 :reg32;  -- pipeline register values from EX
-    signal ID_op, ID_funct: std_logic_vector(5 downto 0);
+    signal ID_op, ID_funct, ID_op_mux: std_logic_vector(5 downto 0);
     signal ID_rs, ID_rt, ID_rd: std_logic_vector(4 downto 0);
     signal ID_immed: std_logic_vector(15 downto 0);
     signal ID_extend, ID_A, ID_B: reg32;
     signal ID_RegWrite, ID_Branch, ID_RegDst, ID_MemtoReg, ID_MemRead, ID_MemWrite, ID_ALUSrc: std_logic; --ID Control Signals
     signal ID_ALUOp: std_logic_vector(1 downto 0);
-	signal stall : std_logic;
+	signal ID_stall : std_logic := '0';
+	--signal ID_stall_op : std_logic_vector(5 downto 0) := "000000";
 
     -- EX Signals
 
@@ -74,7 +76,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
     -- IF Hardware
 
-    PC: entity work.reg port map (clk, reset, IF_pc_next, IF_pc);
+    PC: entity work.reg port map (clk, reset, IF_pc_enable, IF_pc_next, IF_pc_stall, IF_pc); -- Adicionado IF_pc_enable e IF_pc_stall para detecção de riscos
 
     PC4: entity work.add32 port map (IF_pc, x"00000004", IF_pc4);
 
@@ -87,16 +89,15 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     begin     			-- IF/ID Pipeline Register
     	if rising_edge(clk) then
         	if reset = '1' then
-            		ID_instr <= (others => '0');
-            		ID_pc4   <= (others => '0');
-        	elsif stall = '0' then
-            		ID_instr <= IF_instr;
-            		ID_pc4   <= IF_pc4;
-					stall_PC <= IF_pc;
-			elsif stall = '1' then
-				ID_instr	<= (others => '0');
-				IF_pc 		<= stall_PC;
-        	end if;
+            	ID_instr <= (others => '0');
+            	ID_pc4   <= (others => '0');
+			elsif ID_stall = '0' then
+				ID_instr <= IF_instr;
+				ID_pc4 <= IF_pc4;
+			elsif ID_stall = '1' then -- Se tiver risco
+				ID_instr <= ID_instr; -- Mantém instrução
+				ID_pc4 <= ID_pc4; 	  -- Mantém PC
+			end if;
 	end if;
     end process;
 
@@ -106,25 +107,31 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              ID Stage
     -- ********************************************************************
 
-    ID_op <= ID_instr(31 downto 26);
+	ID_op <= ID_instr(31 downto 26);
     ID_rs <= ID_instr(25 downto 21);
     ID_rt <= ID_instr(20 downto 16);
     ID_rd <= ID_instr(15 downto 11);
     ID_immed <= ID_instr(15 downto 0);
 
 
-    REG_FILE: entity work.reg_bank port map ( clk, reset, WB_RegWrite, ID_rs, ID_rt, WB_RegRd, ID_A, ID_B, WB_wd);
 
-	HAZARD: entity work.hazard_unit port map (EX_MemRead,EX_rt,ID_rs,ID_rt,stall);
+	HAZARD: entity work.hazard_unit port map (EX_MemRead, EX_rt, ID_rs, ID_rt, ID_stall);
 
-	STALL_PC: process(IF_pc,IF_pc4)
+	MX2_STALL: process(ID_stall,IF_pc)
     begin
-    	if stall = '1' then
-        	
-		end if;
+	if ID_stall = '0' then
+		IF_pc_enable <= '0';
+	elsif ID_stall = '1' then
+		IF_pc_enable <= '1';  -- Ativa escrita no PC
+		IF_pc_stall <= IF_pc; -- Guarda PC atual
+	end if;
     end process;
 
-    -- sign-extender
+
+	REG_FILE: entity work.reg_bank port map ( clk, reset, WB_RegWrite, ID_rs, ID_rt, WB_RegRd, ID_A, ID_B, WB_wd);
+
+
+	-- sign-extender
     EXT: process(ID_immed)
     begin
 	if ID_immed(15) = '1' then
@@ -133,61 +140,59 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 		ID_extend <= x"0000" & ID_immed(15 downto 0);
 	end if;
     end process;
-    
+
 
     CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ALUSrc, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
-
-	STALL: process(ID_RegDst, ID_ALUSrc, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp)
-    begin
-	if stall = '1' then
-
-		ID_RegDst 	<= '0';
-		ID_ALUSrc 	<= '0';
-		ID_MemtoReg <= '0';
-		ID_RegWrite <= '0';
-		ID_MemRead 	<= '0';
-		ID_MemWrite <= '0';
-		ID_Branch 	<= '0';
-		ID_ALUOp 	<= (others => '0');
-	end if;
-    end process;
 
 
     ID_EX_pip: process(clk)		    -- ID/EX Pipeline Register
     begin
 	if rising_edge(clk) then
         	if reset = '1' then
-            		EX_RegDst   <= '0';
+            	EX_RegDst   <= '0';
 	    		EX_ALUOp    <= (others => '0');
-            		EX_ALUSrc   <= '0';
+            	EX_ALUSrc   <= '0';
 		    	EX_Branch   <= '0';
-			EX_MemRead  <= '0';
-			EX_MemWrite <= '0';
-			EX_RegWrite <= '0';
-			EX_MemtoReg <= '0';
+				EX_MemRead  <= '0';
+				EX_MemWrite <= '0';
+				EX_RegWrite <= '0';
+				EX_MemtoReg <= '0';
 
-			EX_pc4      <= (others => '0');
-			EX_A        <= (others => '0');
-			EX_B        <= (others => '0');
-			EX_extend   <= (others => '0');
-			EX_rt       <= (others => '0');
-			EX_rd       <= (others => '0');
-        	else 
-            		EX_RegDst   <= ID_RegDst;
-            		EX_ALUOp    <= ID_ALUOp;
-            		EX_ALUSrc   <= ID_ALUSrc;
-            		EX_Branch   <= ID_Branch;
-            		EX_MemRead  <= ID_MemRead;
-            		EX_MemWrite <= ID_MemWrite;
-            		EX_RegWrite <= ID_RegWrite;
-            		EX_MemtoReg <= ID_MemtoReg;
+				EX_pc4      <= (others => '0');
+				EX_A        <= (others => '0');
+				EX_B        <= (others => '0');
+				EX_extend   <= (others => '0');
+				EX_rt       <= (others => '0');
+				EX_rd       <= (others => '0');
+        	elsif ID_stall = '0' then
+            	EX_RegDst   <= ID_RegDst;
+            	EX_ALUOp    <= ID_ALUOp;
+            	EX_ALUSrc   <= ID_ALUSrc;
+            	EX_Branch   <= ID_Branch;
+            	EX_MemRead  <= ID_MemRead;
+            	EX_MemWrite <= ID_MemWrite;
+            	EX_RegWrite <= ID_RegWrite;
+            	EX_MemtoReg <= ID_MemtoReg;
           
-            		EX_pc4      <= ID_pc4;
-            		EX_A        <= ID_A;
-            		EX_B        <= ID_B;
-            		EX_extend   <= ID_extend;
-            		EX_rt       <= ID_rt;
-            		EX_rd       <= ID_rd;
+            	EX_pc4      <= ID_pc4;
+            	EX_A        <= ID_A;
+            	EX_B        <= ID_B;
+            	EX_extend   <= ID_extend;
+            	EX_rt       <= ID_rt;
+            	EX_rd       <= ID_rd;
+			elsif ID_stall = '1' then -- Zera os sinais
+				EX_MemRead  <= '0';
+				EX_MemWrite <= '0';
+				EX_RegWrite <= '0';
+				EX_pc4      <= (others => '0');
+				EX_A        <= (others => '0');
+				EX_B        <= (others => '0');
+				EX_extend   <= (others => '0');
+				EX_rt       <= (others => '0');
+				EX_rd       <= (others => '0');
+				EX_RegDst   <= 'X'
+				EX_ALUOp    <= (others => '0');
+				EX_Branch   <= '0';
         	end if;
 	end if;
     end process;

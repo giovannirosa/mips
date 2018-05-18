@@ -5,7 +5,7 @@ use work.p_MI0.all;
 entity hazard_unit is
 	port 	(
 			ID_EX_MemRead : in std_logic;
-		 	EX_rt, ID_rs, ID_rt : in  reg32;
+		 	EX_rt, ID_rs, ID_rt : in std_logic_vector(4 downto 0);
             stall : out std_logic
 		);
 end hazard_unit;
@@ -22,7 +22,6 @@ begin
 		if ID_EX_MemRead = '1' then
 			if EX_rt = ID_rs or EX_rt = ID_rt then
 				stall <= '1';
-
 			end if;
 		end if;
 	end process;

@@ -11,8 +11,9 @@ entity reg is
 		width : integer := 32
 	);
 
-	port(  	ck, rst : in std_logic;
+	port(  	ck, rst, E : in std_logic; -- PC Enable
                	D : in  std_logic_vector(width-1 downto 0);
+                S : in  std_logic_vector(width-1 downto 0); -- PC Stall
                	Q : out std_logic_vector(width-1 downto 0)
         );
 end reg;
@@ -24,8 +25,10 @@ begin
   begin
        if rst = '1' then
               Q <= (others => '0');
-       elsif ck'event and ck = '1' then
-              Q <= D; 
+       elsif ck'event and ck = '1' and E = '0' then
+              Q <= D;
+       elsif E = '1' then
+				      Q <= S;
        end if;
   end process;
         
