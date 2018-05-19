@@ -18,7 +18,9 @@ architecture reg_bank of reg_bank is
    type bank is array(0 to 31) of reg32;
    signal reg : bank;                            
    signal wen : reg32;
+   signal icl : std_logic;
 begin            
+    icl <= '0' when ck = '1' else '1';
 
     g1: for i in 0 to 31 generate        
 

@@ -113,8 +113,6 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     ID_rd <= ID_instr(15 downto 11);
     ID_immed <= ID_instr(15 downto 0);
 
-
-
 	HAZARD: entity work.hazard_unit port map (EX_MemRead, EX_rt, ID_rs, ID_rt, ID_stall);
 
 	MX2_STALL: process(ID_stall,IF_pc)
@@ -139,7 +137,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	else
 		ID_extend <= x"0000" & ID_immed(15 downto 0);
 	end if;
-    end process;
+	end process;
 
 
     CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ALUSrc, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
@@ -190,7 +188,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 				EX_extend   <= (others => '0');
 				EX_rt       <= (others => '0');
 				EX_rd       <= (others => '0');
-				EX_RegDst   <= 'X'
+				EX_RegDst   <= 'X';
 				EX_ALUOp    <= (others => '0');
 				EX_Branch   <= '0';
         	end if;
