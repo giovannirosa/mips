@@ -20,6 +20,7 @@ package p_MI0 is
   constant LW: std_logic_vector(5 downto 0) := "100101";
   constant SW: std_logic_vector(5 downto 0) := "101011";
   constant BEQ: std_logic_vector(5 downto 0) := "000100";
+  constant ADDI: std_logic_vector(5 downto 0) := "001000";
 
 
   type microinstruction is record
