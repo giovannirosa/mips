@@ -283,7 +283,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
 	ALU_MUX_A: entity work.mux4 port map (EX_ALUSrcA, EX_A,EX_AZero, MEM_ALUOut,WB_wd,EX_alua);--MUX A Forward
 
-	ALU_MUX_A1: entity work.mux2 port map (EX_FwdA, EX_alua,EX_AZero, EX_alua1); --MuxA1 decide entre Forward ou 0 para SWI
+	ALU_MUX_A1: entity work.mux2 port map (EX_FwdA, EX_alua, EX_AZero, EX_alua1); --MuxA1 decide entre Forward ou 0 para LWDI
 
 	ALU_h: entity work.alu port map (EX_Operation, EX_alua1, EX_alub1, EX_ALUOut, EX_Zero);
 
