@@ -27,7 +27,7 @@ begin
         wen(i) <= '1' when i/=0 and adRD=i and wreg='1' else '0';
          
         rx: entity work.reg32_ce
-			port map(ck=>ck, rst=>rst, ce=>wen(i), D=>RW, Q=>reg(i));                   
+			port map(ck=>icl, rst=>rst, ce=>wen(i), D=>RW, Q=>reg(i));                   
         
     end generate g1;      
 

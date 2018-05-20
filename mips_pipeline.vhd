@@ -105,13 +105,14 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
     -- ********************************************************************
     --                              ID Stage
-    -- ********************************************************************
-
+	-- ********************************************************************
+	
 	ID_op <= ID_instr(31 downto 26);
     ID_rs <= ID_instr(25 downto 21);
     ID_rt <= ID_instr(20 downto 16);
     ID_rd <= ID_instr(15 downto 11);
-    ID_immed <= ID_instr(15 downto 0);
+	ID_immed <= ID_instr(15 downto 0);
+	
 
 	HAZARD: entity work.hazard_unit port map (EX_MemRead, EX_rt, ID_rs, ID_rt, ID_stall);
 
@@ -139,6 +140,52 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	end if;
 	end process;
 
+	Fwd_branch : process (Hazard,ID_Branch,MEM_RegRd,ID_rt,ID_rs,EX_RegRd,MEM_RegWrite)--Forward para Branch
+	begin
+		if Hazard /= '1'  then --Caso Hazard LW esperar próximo ciclo(para não pegar valores errados).
+			if (ID_Branch = '1') and (EX_RegRd /= "00000") and (EX_RegRd = ID_rs) then	
+				ID_ALUSrcA <= "01";
+
+			elsif (ID_Branch = '1' and MEM_RegRd /="00000") and (MEM_RegRd = ID_rs) then
+				ID_ALUSrcA <= "10";
+
+			else
+				ID_ALUSrcA <= "00";
+
+			end if;
+
+			if (ID_Branch = '1') and (EX_RegRd /= "00000") and (EX_RegRd = ID_rt) then
+				ID_ALUsrcB <= "01";
+		
+			elsif (ID_Branch = '1' and MEM_RegRd /="00000") and (MEM_RegRd = ID_rt) then
+				ID_ALUSrcB <= "10";
+			else
+				ID_ALUSrcB  <= "00";
+			end if;
+
+			if MEM_MemtoReg = '1' and MEM_RegRd /= "00000" and MEM_RegWrite = '1' then --Caso Hazard LW devo pegar saida da memória não da ALU.
+				ID_ALUOutlw <= MEM_memout;
+			else
+				ID_ALUOutlw <= MEM_ALUOut;
+			end if;
+		end if;
+	end process;
+
+	ALU_MUX_B_Branch: entity work.mux3 port map (ID_ALUSrcB, ID_B,EX_ALUOut,ID_ALUOutlw,ID_alub);--Entrada B ULA para Branch
+
+	ALU_MUX_A_Branch: entity work.mux3 port map (ID_ALUSrcA, ID_A,EX_ALUOut,ID_ALUOutlw,ID_alua);--Entrada A ULA para BRanch
+
+	ALU_h_Branch: entity work.alu port map (ID_Operation, ID_alua, ID_alub, ID_ALUOut, ID_Zero);--ULA -> Comparador para Branch
+
+	ALU_c_Branch: entity work.alu_ctl port map (ID_ALUOp, ID_funct, ID_Operation);
+
+
+	-- branch offset shifter
+	SIGN_EXT: entity work.shift_left port map (ID_extend, 2, ID_offset);
+	BRANCH_ADD: entity work.add32 port map (ID_pc4, ID_offset, ID_btgt);
+	MEM_PCSrc <= ID_Branch and ID_Zero;
+
+	
 
     CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ALUSrc, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
 
