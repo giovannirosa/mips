@@ -30,21 +30,23 @@ architecture arq_mips_pipeline of mips_pipeline is
     signal ID_op, ID_funct, ID_op_mux: std_logic_vector(5 downto 0);
     signal ID_rs, ID_rt, ID_rd: std_logic_vector(4 downto 0);
     signal ID_immed: std_logic_vector(15 downto 0);
-    signal ID_extend, ID_A, ID_B: reg32;
-    signal ID_RegWrite, ID_Branch, ID_RegDst, ID_MemtoReg, ID_MemRead, ID_MemWrite, ID_ALUSrc: std_logic; --ID Control Signals
-    signal ID_ALUOp: std_logic_vector(1 downto 0);
-	signal ID_stall : std_logic := '0';
+    signal ID_extend, ID_A, ID_B, ID_ALUOutlw, ID_alua, ID_alub, ID_ALUOut, ID_offset, ID_btgt: reg32;
+    signal ID_RegWrite, ID_Branch, ID_RegDst, ID_MemtoReg, ID_MemRead, ID_MemWrite, ID_Fwda, ID_fwdb: std_logic; --ID Control Signals
+    signal ID_ALUOp, ID_ALUSrcA, ID_ALUsrcB: std_logic_vector(1 downto 0);
+	signal ID_stall, ID_Zero : std_logic := '0';
+	signal ID_Operation: std_logic_vector(2 downto 0);
 	--signal ID_stall_op : std_logic_vector(5 downto 0) := "000000";
 
     -- EX Signals
 
-    signal EX_pc4, EX_extend, EX_A, EX_B: reg32;
-    signal EX_offset, EX_btgt, EX_alub, EX_ALUOut: reg32;
-    signal EX_rt, EX_rd: std_logic_vector(4 downto 0);
+    signal EX_pc4, EX_extend, EX_A, EX_B, EX_AZero: reg32;
+    signal EX_offset, EX_btgt, EX_alub, EX_ALUOut, EX_alua, EX_alua1, EX_alub1: reg32;
+    signal EX_rs, EX_rt, EX_rd: std_logic_vector(4 downto 0);
     signal EX_RegRd: std_logic_vector(4 downto 0);
     signal EX_funct: std_logic_vector(5 downto 0);
-    signal EX_RegWrite, EX_Branch, EX_RegDst, EX_MemtoReg, EX_MemRead, EX_MemWrite, EX_ALUSrc: std_logic;  -- EX Control Signals
-    signal EX_Zero: std_logic;
+    signal EX_RegWrite, EX_Branch, EX_RegDst, EX_MemtoReg, EX_MemRead, EX_MemWrite, EX_Fwdb, EX_fwda: std_logic;  -- EX Control Signals
+	signal EX_ALUSrcA,EX_ALUSrcB:std_logic_vector(1 downto 0);
+	signal EX_Zero: std_logic;
     signal EX_ALUOp: std_logic_vector(1 downto 0);
     signal EX_Operation: std_logic_vector(2 downto 0);
 
@@ -134,9 +136,9 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	end if;
 	end process;
 
-	Fwd_branch : process (Hazard,ID_Branch,MEM_RegRd,ID_rt,ID_rs,EX_RegRd,MEM_RegWrite)--Forward para Branch
+	Fwd_branch : process (ID_stall,ID_Branch,MEM_RegRd,ID_rt,ID_rs,EX_RegRd,MEM_RegWrite)--Forward para Branch
 	begin
-		if Hazard /= '1'  then --Caso Hazard LW esperar próximo ciclo(para não pegar valores errados).
+		if ID_stall /= '1'  then --Caso Hazard LW esperar próximo ciclo(para não pegar valores errados).
 			if (ID_Branch = '1') and (EX_RegRd /= "00000") and (EX_RegRd = ID_rs) then	
 				ID_ALUSrcA <= "01";
 
@@ -185,7 +187,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     ID_rd <= ID_instr(15 downto 11);
 	ID_immed <= ID_instr(15 downto 0);
 
-    CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ALUSrc, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
+    CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_fwdb, ID_fwda, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
 
 
     ID_EX_pip: process(clk)		    -- ID/EX Pipeline Register
@@ -194,7 +196,8 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
         	if reset = '1' then
             	EX_RegDst   <= '0';
 	    		EX_ALUOp    <= (others => '0');
-            	EX_ALUSrc   <= '0';
+            	EX_Fwdb     <= '0';
+				EX_Fwda     <= '0';
 		    	EX_Branch   <= '0';
 				EX_MemRead  <= '0';
 				EX_MemWrite <= '0';
@@ -210,7 +213,8 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
         	elsif ID_stall = '0' then
             	EX_RegDst   <= ID_RegDst;
             	EX_ALUOp    <= ID_ALUOp;
-            	EX_ALUSrc   <= ID_ALUSrc;
+            	EX_Fwdb     <= ID_Fwdb;
+				EX_Fwda     <= ID_Fwda;
             	EX_Branch   <= ID_Branch;
             	EX_MemRead  <= ID_MemRead;
             	EX_MemWrite <= ID_MemWrite;
@@ -222,20 +226,24 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
             	EX_B        <= ID_B;
             	EX_extend   <= ID_extend;
             	EX_rt       <= ID_rt;
-            	EX_rd       <= ID_rd;
+				EX_rd       <= ID_rd;
+				EX_rs       <= ID_rs;
 			elsif ID_stall = '1' then -- Zera os sinais
 				EX_MemRead  <= '0';
 				EX_MemWrite <= '0';
 				EX_RegWrite <= '0';
-				EX_pc4      <= (others => '0');
-				EX_A        <= (others => '0');
-				EX_B        <= (others => '0');
-				EX_extend   <= (others => '0');
-				EX_rt       <= (others => '0');
-				EX_rd       <= (others => '0');
-				EX_RegDst   <= 'X';
-				EX_ALUOp    <= (others => '0');
-				EX_Branch   <= '0';
+				EX_pc4      <= ID_pc4;
+				EX_A        <= ID_A;
+				EX_B        <= ID_B;
+				EX_extend   <= ID_extend;
+				EX_rt       <= ID_rt;
+				EX_rd       <= ID_rd;
+				EX_rs       <= ID_rs;
+				EX_RegDst   <= ID_RegDst;
+				EX_ALUOp    <= ID_ALUOp;
+				EX_Fwda      <= ID_Fwda;
+				EX_Fwdb      <= ID_Fwdb;
+				EX_Branch   <= ID_Branch;
         	end if;
 	end if;
     end process;
@@ -309,7 +317,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
             		MEM_btgt     <= EX_btgt;
             		MEM_ALUOut   <= EX_ALUOut;
-            		MEM_B        <= EX_B;
+            		MEM_B        <= EX_alub;
             		MEM_RegRd    <= EX_RegRd;
         	end if;
 	end if;
