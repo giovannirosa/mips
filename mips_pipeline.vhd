@@ -106,13 +106,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     -- ********************************************************************
     --                              ID Stage
 	-- ********************************************************************
-	
-	ID_op <= ID_instr(31 downto 26);
-    ID_rs <= ID_instr(25 downto 21);
-    ID_rt <= ID_instr(20 downto 16);
-    ID_rd <= ID_instr(15 downto 11);
-	ID_immed <= ID_instr(15 downto 0);
-	
+
 
 	HAZARD: entity work.hazard_unit port map (EX_MemRead, EX_rt, ID_rs, ID_rt, ID_stall);
 
@@ -185,7 +179,11 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	BRANCH_ADD: entity work.add32 port map (ID_pc4, ID_offset, ID_btgt);
 	MEM_PCSrc <= ID_Branch and ID_Zero;
 
-	
+	ID_op <= ID_instr(31 downto 26);
+    ID_rs <= ID_instr(25 downto 21);
+    ID_rt <= ID_instr(20 downto 16);
+    ID_rd <= ID_instr(15 downto 11);
+	ID_immed <= ID_instr(15 downto 0);
 
     CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ALUSrc, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
 
@@ -246,20 +244,44 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              EX Stage
     -- ********************************************************************
 
-    -- branch offset shifter
-    SIGN_EXT: entity work.shift_left port map (EX_extend, 2, EX_offset);
+    Fwd : process (MEM_RegWrite,MEM_RegRd,EX_rt,EX_rs,WB_RegWrite,WB_RegRd)--Forward
+	begin
+		if (MEM_RegWrite = '1') and (MEM_RegRd /= "00000") and (MEM_RegRd = EX_rs) then	--EX Hazard
+			Ex_ALUSrcA <= "10";
+		elsif (WB_RegWrite = '1' and WB_RegRd /="00000") and ( MEM_RegRd /= EX_rs)  and (WB_RegRd = EX_rs) then --MEM Hazard
+			Ex_ALUSrcA <= "11";
+		else
+			EX_ALUSrcA <= "00";--Sem Hazard apenas puxa A
+		end if;
 
-    EX_funct <= EX_extend(5 downto 0);  
+		if (MEM_RegWrite = '1') and (MEM_RegRd /= "00000") and (MEM_RegRd = EX_rt) then --EX Hazard
+			Ex_ALUsrcB<= "01";
+		elsif (WB_RegWrite = '1' and WB_RegRd /="00000") and (MEM_RegRD /= EX_rt) and (WB_RegRd = EX_rt) then --MEM Hazard
+			Ex_ALUSrcB<= "10";
+		else
+			EX_ALUSrcB <= "00";--Sem Hazard apenas puxa B
+		end if;
 
-    BRANCH_ADD: entity work.add32 port map (EX_pc4, EX_offset, EX_btgt);
+	end process;
 
-    ALU_MUX_A: entity work.mux2 port map (EX_ALUSrc, EX_B, EX_extend, EX_alub);
 
-    ALU_h: entity work.alu port map (EX_Operation, EX_A, EX_alub, EX_ALUOut, EX_Zero);
+	EX_AZero <= "00000000000000000000000000000000";--Entrada 0 para A no caso de SWI
 
-    DEST_MUX2: entity work.mux2 generic map (5) port map (EX_RegDst, EX_rt, EX_rd, EX_RegRd);
+	EX_funct <= EX_extend(5 downto 0);  
 
-    ALU_c: entity work.alu_ctl port map (EX_ALUOp, EX_funct, EX_Operation);
+	ALU_MUX_B: entity work.mux3 port map (EX_ALUSrcB, EX_B,MEM_ALUOut,WB_wd,EX_alub);--Mux B Forward
+
+	ALU_MUX_B1:entity work.mux2 port map (EX_FwdB, EX_alub, EX_extend,EX_alub1);--MuxB1 decide entre Forward ou extensão
+
+	ALU_MUX_A: entity work.mux4 port map (EX_ALUSrcA, EX_A,EX_AZero, MEM_ALUOut,WB_wd,EX_alua);--MUX A Forward
+
+	ALU_MUX_A1: entity work.mux2 port map (EX_FwdA, EX_alua,EX_AZero, EX_alua1); --MuxA1 decide entre Forward ou 0 para SWI
+
+	ALU_h: entity work.alu port map (EX_Operation, EX_alua1, EX_alub1, EX_ALUOut, EX_Zero);
+
+	DEST_MUX2: entity work.mux2 generic map (5) port map (EX_RegDst, EX_rt, EX_rd, EX_RegRd);
+
+	ALU_c: entity work.alu_ctl port map (EX_ALUOp, EX_funct, EX_Operation);
 
     EX_MEM_pip: process (clk)		    -- EX/MEM Pipeline Register
     begin
