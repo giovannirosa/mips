@@ -10,7 +10,7 @@ entity reg_bank is
        port( ck, rst, wreg :    in std_logic;
              AdRs, AdRt, adRD : in std_logic_vector( 4 downto 0);
              RA, RB: out reg32;
-	     RW : in reg32
+	         RW : in reg32
            );
 end reg_bank;
 

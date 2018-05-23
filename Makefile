@@ -25,6 +25,7 @@ SRC = 	basic_types.vhd \
     	alu_ctl.vhd \
     	mem32.vhd \
 		hazard_unit.vhd \
+		forward_unit.vhd \
     	mips_pipeline.vhd \
     	mips_tb.vhd
 
