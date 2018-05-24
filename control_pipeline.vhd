@@ -7,6 +7,7 @@ entity control_pipeline is
 			opcode: in std_logic_vector(5 downto 0);
 		 	RegDst: out std_logic; 
 			ReadBack: out std_logic; 
+			SelExt: out std_logic; 
 			MemtoReg: out std_logic; 
 			RegWrite: out std_logic; 
 			MemRead: out std_logic; 
@@ -19,26 +20,18 @@ end control_pipeline;
 
 architecture arq_control_pipeline of control_pipeline is
 
-
-
-    --input [5:0] opcode;
-    --output RegDst, ALUSrc, MemtoReg, RegWrite, MemRead, MemWrite, Branch;
-    --output [1:0] ALUOp;
-    --reg    RegDst, ALUSrc, MemtoReg, RegWrite, MemRead, MemWrite, Branch;
-    --reg    [1:0] ALUOp;
-
 begin
    
     process (opcode)
     begin
         case opcode is
-			when R_FORMAT => RegDst <= '1'; ReadBack <= '0'; MemtoReg <= '0'; RegWrite <='1'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "10"; -- R type
-			when LW => RegDst <= '0'; ReadBack <= '0'; MemtoReg <= '1'; RegWrite <='1'; MemRead<='1'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- LW
-			when SW => RegDst <= 'X'; ReadBack <= '0'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='1'; Branch<='0'; ALUOp <= "00"; -- SW
-			when BEQ => RegDst <= 'X'; ReadBack <= '0'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='0'; Branch<='1'; ALUOp <= "01"; -- BEQ
-			when ADDI => RegDst <= '0'; ReadBack <= '0'; MemtoReg <= '0'; RegWrite <='1'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- ADDI
-			when LWDI => RegDst <= '0'; ReadBack <= '1'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='1'; Branch<='0'; ALUOp <= "00"; -- LWDI
-			when others => RegDst <= '0'; ReadBack <= '0'; MemtoReg <= '0'; RegWrite <='0'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "00";
+			when R_FORMAT => RegDst <= '1'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= '0'; RegWrite <='1'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "10"; -- R type
+			when LW => RegDst <= '0'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= '1'; RegWrite <='1'; MemRead<='1'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- LW
+			when SW => RegDst <= 'X'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='1'; Branch<='0'; ALUOp <= "00"; -- SW
+			when BEQ => RegDst <= 'X'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='0'; Branch<='1'; ALUOp <= "01"; -- BEQ
+			when ADDI => RegDst <= '0'; ReadBack <= '0'; SelExt <= '1'; MemtoReg <= '0'; RegWrite <='1'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- ADDI
+			when LWDI => RegDst <= '0'; ReadBack <= '1'; SelExt <= 'X'; MemtoReg <= '1'; RegWrite <='1'; MemRead<='1'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- LWDI
+			when others => RegDst <= '0'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= '0'; RegWrite <='0'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "00";
 	end case;
     end process;
 

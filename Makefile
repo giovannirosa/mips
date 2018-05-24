@@ -44,6 +44,7 @@ OBJ = 	basic_types.o \
     	alu_ctl.o \
     	mem32.o \
 		hazard_unit.o \
+		forward_unit.o \
     	mips_pipeline.o \
     	mips_tb.o
 
