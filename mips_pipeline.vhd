@@ -57,7 +57,7 @@ architecture arq_mips_pipeline of mips_pipeline is
 
     signal MEM_PCSrc: std_logic;
     signal MEM_RegWrite, MEM_Branch, MEM_MemtoReg, MEM_MemRead, MEM_MemWrite, MEM_Zero, MEM_ReadBack: std_logic;
-    signal MEM_btgt, MEM_ALUOut, MEM_B: reg32;
+    signal MEM_btgt, MEM_ALUOut, MEM_B, MEM_Address: reg32;
     signal MEM_memout: reg32;
     signal MEM_RegRd: std_logic_vector(4 downto 0);
    
@@ -359,7 +359,11 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              MEM Stage
     -- ********************************************************************
 
-    MEM_ACCESS: entity work.mem32 port map (clk, MEM_MemRead, MEM_MemWrite, MEM_ALUOut, MEM_B, MEM_memout);
+
+	MEM_MUX2: entity work.mux2 port map (EX_ReadBack, MEM_ALUOut, WB_memout, MEM_Address); --Decide o endereço da memória
+
+
+    MEM_ACCESS: entity work.mem32 port map (clk, MEM_MemRead, MEM_MemWrite, MEM_Address, MEM_B, MEM_memout);
 
     MEM_PCSrc <= MEM_Branch and MEM_Zero;
 
@@ -399,26 +403,26 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     -- ********************************************************************
 
 
-	MEM_ACCESS_RB: entity work.mem32 port map (clk, RB_MemRead, RB_MemWrite, RB_adress, RB_B, RB_memout);
-
-	RB_WB_pip: process (clk)		-- RB/WB Pipeline Register
-    begin
-	if rising_edge(clk) then
-	        if reset = '1' then
-            		WB_RegWrite <= '0';
-            		WB_MemtoReg <= '0';
-            		WB_ALUOut   <= (others => '0');
-            		WB_memout   <= (others => '0');
-            		WB_RegRd    <= (others => '0');
-        	else
-            		WB_RegWrite <= RB_RegWrite;
-            		WB_MemtoReg <= RB_MemtoReg;
-            		WB_ALUOut   <= RB_ALUOut;
-            		WB_memout   <= RB_memout;
-            		WB_RegRd    <= RB_RegRd;
-        	end if;
-	end if;
-    end process;
+--	MEM_ACCESS_RB: entity work.mem32 port map (clk, RB_MemRead, RB_MemWrite, RB_adress, RB_B, RB_memout);
+--
+--	RB_WB_pip: process (clk)		-- RB/WB Pipeline Register
+  --  begin
+	--if rising_edge(clk) then
+	 --       if reset = '1' then
+       --     		WB_RegWrite <= '0';
+         --   		WB_MemtoReg <= '0';
+           -- 		WB_ALUOut   <= (others => '0');
+            --		WB_memout   <= (others => '0');
+            --		WB_RegRd    <= (others => '0');
+        	--else
+            --		WB_RegWrite <= RB_RegWrite;
+            --		WB_MemtoReg <= RB_MemtoReg;
+            --		WB_ALUOut   <= RB_ALUOut;
+            --		WB_memout   <= RB_memout;
+            --		WB_RegRd    <= RB_RegRd;
+        	--end if;
+--	end if;
+--    end process;
 
 
     -- ********************************************************************
