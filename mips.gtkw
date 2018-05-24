@@ -1,93 +1,92 @@
 [*]
 [*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
-[*] Wed May 23 00:21:58 2018
+[*] Thu May 24 17:31:10 2018
 [*]
 [dumpfile] "/home/bcc/grs14/Arquitetura/mips_pipeline/mips.vcd"
-[dumpfile_mtime] "Tue May 22 22:54:14 2018"
-[dumpfile_size] 160282
+[dumpfile_mtime] "Thu May 24 17:13:12 2018"
+[dumpfile_size] 277381
 [savefile] "/home/bcc/grs14/Arquitetura/mips_pipeline/mips.gtkw"
 [timestart] 0
 [size] 1680 997
-[pos] -331 -205
-*-30.000000 1755000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-30.000000 1800000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [sst_width] 196
-[signals_width] 470
+[signals_width] 411
 [sst_expanded] 1
 [sst_vpaned_height] 288
-@200
--IF
 @28
 clock
 @24
 a.if_pc[31:0]
 @28
 a.if_instr[31:0]
-a.if_pc_enable
-@24
-a.if_pc_stall[31:0]
 @200
 -ID
-@24
+@23
 a.id_rs[4:0]
 a.id_rt[4:0]
 a.id_rd[4:0]
-@28
-a.id_regdst
-a.id_regwrite
-@24
-a.id_extend[31:0]
-a.id_offset[31:0]
-@28
-a.id_operation[2:0]
-a.id_memread
-a.id_memtoreg
-a.id_memwrite
-a.id_fwda
-a.id_fwdb
-a.id_branch
-a.id_alusrca[1:0]
 @29
-a.id_alusrcb[1:0]
-@24
-a.id_aluoutlw[31:0]
-@28
-a.id_aluop[1:0]
-@24
-a.id_aluout[31:0]
+a.id_regdst
+a.id_readback
+a.id_regwrite
+a.id_selext
+a.id_stall
+a.id_zero
 @200
 -EX
-@28
-a.ex_zero_branch
+@23
+a.ex_rs[4:0]
+a.ex_rt[4:0]
+a.ex_rd[4:0]
+@29
+a.ex_regdst
 a.ex_aluop[1:0]
-@24
-a.ex_alua_final[31:0]
+@23
+a.ex_alua[31:0]
 a.ex_alub_final[31:0]
 a.ex_aluout[31:0]
+@29
+a.ex_stall
+a.ex_selext
+a.ex_zero_branch
+a.ex_readback
 @200
 -MEM
-@24
+@25
 a.mem_aluout[31:0]
-a.mem_memout[31:0]
-@28
+@29
 a.mem_memread
 a.mem_memtoreg
 a.mem_memwrite
-a.mem_pcsrc
+a.mem_readback
 a.mem_regwrite
-a.mem_zero
-a.mem_branch
+@23
+a.mem_regrd[4:0]
+@25
+a.mem_memout[31:0]
+@200
+-RB
+@25
+a.rb_adress[31:0]
+@29
+a.rb_memread
+a.rb_memtoreg
+a.rb_memwrite
+@25
+a.rb_memout[31:0]
+@29
+a.rb_regwrite
+@23
+a.rb_wd[31:0]
 @200
 -WB
-@24
-a.wb_aluout[31:0]
-a.wb_memout[31:0]
-@28
+@29
 a.wb_memtoreg
-@24
-a.wb_regrd[4:0]
-@28
-a.wb_regwrite
-@24
+@23
 a.wb_wd[31:0]
+a.wb_regrd[4:0]
+@29
+a.wb_regwrite
 [pattern_trace] 1
 [pattern_trace] 0

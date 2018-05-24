@@ -26,8 +26,8 @@ begin
     begin
         case opcode is
 			when R_FORMAT => RegDst <= '1'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= '0'; RegWrite <='1'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "10"; -- R type
-			when LW => RegDst <= '0'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= '1'; RegWrite <='1'; MemRead<='1'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- LW
-			when SW => RegDst <= 'X'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='1'; Branch<='0'; ALUOp <= "00"; -- SW
+			when LW => RegDst <= '0'; ReadBack <= '0'; SelExt <= '1'; MemtoReg <= '1'; RegWrite <='1'; MemRead<='1'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- LW
+			when SW => RegDst <= '0'; ReadBack <= '0'; SelExt <= '1'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='1'; Branch<='0'; ALUOp <= "00"; -- SW
 			when BEQ => RegDst <= 'X'; ReadBack <= '0'; SelExt <= '0'; MemtoReg <= 'X'; RegWrite <='0'; MemRead<='0'; MemWrite<='0'; Branch<='1'; ALUOp <= "01"; -- BEQ
 			when ADDI => RegDst <= '0'; ReadBack <= '0'; SelExt <= '1'; MemtoReg <= '0'; RegWrite <='1'; MemRead<='0'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- ADDI
 			when LWDI => RegDst <= '0'; ReadBack <= '1'; SelExt <= 'X'; MemtoReg <= '1'; RegWrite <='1'; MemRead<='1'; MemWrite<='0'; Branch<='0'; ALUOp <= "00"; -- LWDI
