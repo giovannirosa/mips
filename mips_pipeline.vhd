@@ -56,7 +56,7 @@ architecture arq_mips_pipeline of mips_pipeline is
    -- MEM Signals
 
     signal MEM_PCSrc: std_logic;
-    signal MEM_RegWrite, MEM_Branch, MEM_MemtoReg, MEM_MemRead, MEM_MemWrite, MEM_Zero, MEM_ReadBack: std_logic;
+    signal MEM_RegWrite, MEM_Branch, MEM_MemtoReg, MEM_MemRead, MEM_MemWrite, MEM_Zero, MEM_ReadBack, MEM_SelAddress: std_logic;
     signal MEM_btgt, MEM_ALUOut, MEM_B, MEM_Address: reg32;
     signal MEM_memout: reg32;
     signal MEM_RegRd: std_logic_vector(4 downto 0);
@@ -64,16 +64,16 @@ architecture arq_mips_pipeline of mips_pipeline is
 
     -- RB Signals
 
-	signal RB_MemRead, RB_MemWrite: std_logic;
-    signal RB_RegWrite, RB_MemtoReg: std_logic;  -- RB Control Signals
-    signal RB_adress, RB_memout, RB_ALUOut, RB_B: reg32;
-    signal RB_wd: reg32;
-    signal RB_RegRd: std_logic_vector(4 downto 0);
+	-- signal RB_MemRead, RB_MemWrite: std_logic;
+    -- signal RB_RegWrite, RB_MemtoReg: std_logic;  -- RB Control Signals
+    -- signal RB_adress, RB_memout, RB_ALUOut, RB_B: reg32;
+    -- signal RB_wd: reg32;
+    -- signal RB_RegRd: std_logic_vector(4 downto 0);
 
 
     -- WB Signals
 
-    signal WB_RegWrite, WB_MemtoReg: std_logic;  -- WB Control Signals
+    signal WB_RegWrite, WB_MemtoReg, WB_ReadBack: std_logic;  -- WB Control Signals
     signal WB_memout, WB_ALUOut: reg32;
     signal WB_wd: reg32;
     signal WB_RegRd: std_logic_vector(4 downto 0);
@@ -266,13 +266,12 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              EX Stage
     -- ********************************************************************
 
-	HAZARD_EX: entity work.hazard_unit port map (MEM_MemRead, MEM_RegRd, EX_rs, EX_rt, EX_stall);
-
-	MX2_STALL_EX: process(EX_stall,IF_pc)
+	MX2_STALL_EX: process(EX_ReadBack,IF_pc)
     begin
-	if EX_stall = '0' then
+	if EX_ReadBack = '0' then
 		IF_pc_enable <= '0';
-	elsif EX_stall = '1' then
+	elsif EX_ReadBack = '1' then
+		EX_stall <= '1';
 		IF_pc_enable <= '1';  -- Ativa escrita no PC
 		IF_pc_stall <= IF_pc; -- Guarda PC atual
 	end if;
@@ -325,9 +324,8 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
             		MEM_ALUOut   <= (others => '0');
             		MEM_B        <= (others => '0');
             		MEM_RegRd    <= (others => '0');
-        	elsif EX_stall = '0' then
+			elsif EX_stall = '0' then
             		MEM_Branch   <= EX_Branch;
-            		MEM_MemRead  <= EX_MemRead;
             		MEM_MemWrite <= EX_MemWrite;
             		MEM_RegWrite <= EX_RegWrite;
             		MEM_MemtoReg <= EX_MemtoReg;
@@ -337,12 +335,18 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
             		MEM_btgt     <= EX_btgt;
             		MEM_ALUOut   <= EX_ALUOut;
             		MEM_B        <= EX_alub;
-            		MEM_RegRd    <= EX_RegRd;
+					MEM_RegRd    <= EX_RegRd;
+					MEM_SelAddress <= '0';
 			elsif EX_stall = '1' then
+					-- if EX_ReadBack = '0' then
+					-- 	MEM_MemRead  <= '0';
+					-- 	MEM_RegWrite <= '0';
+					-- elsif EX_ReadBack = '1' then
+					-- 	MEM_MemRead  <= '1';
+					-- 	MEM_RegWrite <= '1';
+					-- end if;
 					MEM_Branch   <= EX_Branch;
-            		MEM_MemRead  <= '0';
             		MEM_MemWrite <= '0';
-            		MEM_RegWrite <= '0';
             		MEM_MemtoReg <= EX_MemtoReg;
             		MEM_Zero     <= EX_zero_branch;
 					MEM_ReadBack <= EX_ReadBack;
@@ -350,7 +354,8 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
             		MEM_btgt     <= EX_btgt;
             		MEM_ALUOut   <= EX_ALUOut;
             		MEM_B        <= EX_alub;
-            		MEM_RegRd    <= EX_RegRd;
+					MEM_RegRd    <= EX_RegRd;
+					MEM_SelAddress <= '0';
         	end if;
 	end if;
     end process;
@@ -360,40 +365,38 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     -- ********************************************************************
 
 
-	MEM_MUX2: entity work.mux2 port map (EX_ReadBack, MEM_ALUOut, WB_memout, MEM_Address); --Decide o endereço da memória
+	MEM_MUX2: entity work.mux2 port map (MEM_SelAddress, MEM_ALUOut, WB_memout, MEM_Address); --Decide o endereço da memória
 
 
     MEM_ACCESS: entity work.mem32 port map (clk, MEM_MemRead, MEM_MemWrite, MEM_Address, MEM_B, MEM_memout);
 
     MEM_PCSrc <= MEM_Branch and MEM_Zero;
 
-    MEM_RB_pip: process (clk)		-- MEM/RB Pipeline Register
+    MEM_WB_pip: process (clk)		-- MEM/WB Pipeline Register
     begin
 	if rising_edge(clk) then
 	        if reset = '1' then
-            		RB_RegWrite <= '0';
-            		RB_MemtoReg <= '0';
-            		RB_ALUOut   <= (others => '0');
-            		RB_memout   <= (others => '0');
-            		RB_RegRd    <= (others => '0');
-        	elsif MEM_ReadBack = '1' then
-					RB_MemRead  <= MEM_MemRead;
-					RB_MemWrite <= MEM_MemWrite;
-					RB_B		<= MEM_B;
-            		RB_RegWrite <= MEM_RegWrite;
-            		RB_MemtoReg <= MEM_MemtoReg;
-            		RB_ALUOut   <= MEM_ALUOut;
-            		RB_adress   <= MEM_memout; -- Endereço será a saída da leitura anterior
-            		RB_RegRd    <= MEM_RegRd;
-			elsif MEM_ReadBack = '0' then
-					RB_MemRead  <= MEM_MemRead;
-					RB_MemWrite <= MEM_MemWrite;
-					RB_B		<= MEM_B;
-            		RB_RegWrite <= MEM_RegWrite;
-            		RB_MemtoReg <= MEM_MemtoReg;
-            		RB_ALUOut   <= MEM_ALUOut;
-            		RB_adress   <= MEM_ALUOut; -- Endereço continua sendo ALUOut
-            		RB_RegRd    <= MEM_RegRd;
+            		WB_RegWrite <= '0';
+            		WB_MemtoReg <= '0';
+            		WB_ALUOut   <= (others => '0');
+            		WB_memout   <= (others => '0');
+            		WB_RegRd    <= (others => '0');
+        	else
+            		WB_RegWrite <= MEM_RegWrite;
+            		WB_MemtoReg <= MEM_MemtoReg;
+            		WB_ALUOut   <= MEM_ALUOut;
+            		WB_memout   <= MEM_memout; -- Endereço será a saída da leitura anterior
+					WB_RegRd    <= MEM_RegRd;
+					WB_ReadBack <= MEM_ReadBack;
+			-- elsif MEM_ReadBack = '0' then
+			-- 		-- WB_MemRead  <= MEM_MemRead;
+			-- 		-- WB_MemWrite <= MEM_MemWrite;
+			-- 		-- WB_B		<= MEM_B;
+            -- 		WB_RegWrite <= MEM_RegWrite;
+            -- 		WB_MemtoReg <= MEM_MemtoReg;
+            -- 		WB_ALUOut   <= MEM_ALUOut;
+            -- 		WB_memout   <= MEM_memout; -- Endereço continua sendo ALUOut
+            -- 		WB_RegRd    <= MEM_RegRd;
         	end if;
 	end if;
     end process;       
@@ -427,7 +430,23 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
     -- ********************************************************************
     --                              WB Stage
-    -- ********************************************************************
+	-- ********************************************************************
+	
+	WB_pip: process (clk)
+    begin
+	if rising_edge(clk) then
+		if WB_ReadBack = '1' then
+			MEM_SelAddress <= '1';
+			MEM_MemRead	   <= '1';
+			WB_RegWrite	   <= '0';
+			MEM_RegWrite   <= '1';
+			MEM_ReadBack   <= '0';
+		elsif WB_ReadBack = '0' then
+			MEM_SelAddress <= '0';
+		end if;
+	end if;
+	end process;
+
 
     MUX_DEST: entity work.mux2 port map (WB_MemtoReg, WB_ALUOut, WB_memout, WB_wd);
 
