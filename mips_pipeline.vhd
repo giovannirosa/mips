@@ -134,7 +134,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     end process;
 
 	UP_RegWrite <= WB_RegWrite or UP_ReadBack;
-	REGD: process(WB_RegRd)
+	REGD: process(WB_RegRd,UP_RegRd,UP_ReadBack)
 	begin
 		if UP_ReadBack = '1' then
 			UP_RegRd_final <= UP_RegRd;
@@ -281,16 +281,17 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
 
 
-	FORWARD: entity work.forward_unit port map (MEM_RegRd, MEM_RegWrite, WB_RegRd, WB_RegWrite, EX_rs, EX_rt, Ex_ALUSrcA, EX_ALUSrcB);
+	FORWARD: entity work.forward_unit port map (MEM_RegRd, MEM_RegWrite, WB_RegRd, WB_RegWrite, WB_ReadBack, 
+												EX_rs, EX_rt, Ex_ALUSrcA, EX_ALUSrcB);
 
 	EX_funct <= EX_extend(5 downto 0);
 
 
 
 
-	ALU_MUX_A1: entity work.mux3 port map (EX_ALUSrcA, EX_A, WB_wd, MEM_ALUOut, EX_alua); --Forward para a entrada A
+	ALU_MUX_A1: entity work.mux4 port map (EX_ALUSrcA, EX_A, WB_wd, MEM_ALUOut, MEM_memout, EX_alua); --Forward para a entrada A
 
-	ALU_MUX_B1: entity work.mux3 port map (EX_ALUSrcB, EX_B, WB_wd, MEM_ALUOut, EX_alub); --Forward para a entrada B
+	ALU_MUX_B1: entity work.mux4 port map (EX_ALUSrcB, EX_B, WB_wd, MEM_ALUOut, MEM_memout, EX_alub); --Forward para a entrada B
 
 	ALU_MUX_B2: entity work.mux2 port map (EX_SelExt, EX_alub, EX_extend, EX_alub_ext); --Forward para a entrada B
 

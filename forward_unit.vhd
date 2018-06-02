@@ -8,6 +8,7 @@ entity forward_unit is
             MEM_RegWrite : in std_logic;
             WB_rd : in std_logic_vector(4 downto 0);
             WB_RegWrite : in std_logic;
+            WB_ReadBack : in std_logic;
             EX_rs : in std_logic_vector(4 downto 0);
             EX_rt : in std_logic_vector(4 downto 0);
 
@@ -34,6 +35,12 @@ begin
                   -- and (MEM_rd /= EX_rs)
                   and (WB_rd = EX_rs)) then
                         ForwardA <= b"01"; 
+            
+            elsif ((WB_ReadBack = '1') -- LWDI HAZARD
+                  and (MEM_rd /="00000")
+                  and (WB_rd = EX_rs)) then
+                        ForwardB <= b"11";
+            
             else 
                   ForwardA <= b"00";
             end if;
@@ -49,6 +56,11 @@ begin
                   -- and (MEM_rd /= EX_rt)
                   and (WB_rd = EX_rt)) then
                         ForwardB <= b"01"; 
+            
+            elsif ((WB_ReadBack = '1') -- LWDI HAZARD
+                  and (MEM_rd /="00000")
+                  and (WB_rd = EX_rt)) then
+                        ForwardB <= b"11";
 
             else 
                   ForwardB <= b"00";
