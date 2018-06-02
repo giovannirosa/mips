@@ -69,7 +69,7 @@ architecture arq_mips_pipeline of mips_pipeline is
 	signal WB_RegRd: std_logic_vector(4 downto 0);
 	
 
-	signal UP_ReadBack, UP_RegWrite, UP_MemRead: std_logic := '0';
+	signal UP_ReadBack, UP_RegWrite, UP_MemRead: std_logic := '0'; -- Sinais para propagar por mais um ciclo, no caso do LWDI 
 	signal UP_RegRd, UP_RegRd_final: std_logic_vector(4 downto 0);
 
 
