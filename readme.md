@@ -26,7 +26,12 @@ Existe um makefile neste diretório com os seguintes comandos disponíveis:
 * basic_types.vhd: Foram inseridas as constantes ADDI e LWDI.
 * rom32.vhd: Foi modificado para testes.
 * control_pipeline.vhd: Foram inseridos os sinais "ReadBack" [para controlar a instrução LWDI] e "SelExt" [para decidir se usa o extend na ULA]. Foram adicionados os casos de saída para ADDI e LWDI.
-* mips_pipeline.vhd: Foi modificado para suportar Hazard, Forward, Branch, ADDI e LWDI. Foram inseridos MUX no estágio IF para decidir entre PC+4 ou branch ou stall, no estágio ID para aplicar o stall
+* mips_pipeline.vhd: Foi modificado para suportar Hazard, Forward, Branch, ADDI e LWDI.
+    - Estágio IF: MUX para decidir entre PC+4 ou branch e um processo para aplicar o stall.
+    - Estágio ID: unidade de hazard, processo para aplicar o stall, lógica para definir o RegWrite, processo para definir o registrador de destino final, processo para definir forward para branch, MUX para as entradas da ULA, cálculo do endereço do branch, lógica para PCSrc vir do branch.
+    - Estágio EX: processo para aplicar stall no caso do LWDI, unidade de adiantamento, MUX para adiantamentos, MUX para usar o extend, MUX para somar 0 no caso do LWDI.
+    - Estágio MEM: processo para definir o seletor para usar como endereço a saída da ULA ou a saída da Memória, MUX para definir o endereço da Memória, lógica para definir o MemRead.
+    - Estágio WB: processo para propagar o sinal ReadBack e o registrador de destino por mais um ciclo para usar no caso do LWDI.
 
 ### Arquivos criados
 
