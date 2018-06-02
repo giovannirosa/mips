@@ -11,15 +11,15 @@ Existe um makefile neste diretório com os seguintes comandos disponíveis:
 
 ### Pré-requisitos
 
-É necessario ter o ghdl e o programa gtkwave.
+É necessario ter os programas ghdl e gtkwave devidamente instalados e configurados.
 
 ## Modificações
 
 ### Formato das instruções 
 
-* R: opcode[6 bits] rs[5 bits] rt[5 bits] rd[5 bits] shamt[5 bits] funct[6 bits]
-* LW/SW/ADDI/BEQ: opcode[6 bits] rs[5 bits] rt[5 bits] immediate[16 bits]
-* LWDI: opcode[6 bits] rs[5 bits] rt[5 bits] unused[16 bits]
+* R:                opcode[6 bits] rs[5 bits] rt[5 bits] rd[5 bits] shamt[5 bits] funct[6 bits]
+* LW/SW/ADDI/BEQ:   opcode[6 bits] rs[5 bits] rt[5 bits] immediate[16 bits]
+* LWDI:             opcode[6 bits] rs[5 bits] rt[5 bits] unused[16 bits]
 
 ### Arquivos alterados
 
@@ -32,6 +32,7 @@ Existe um makefile neste diretório com os seguintes comandos disponíveis:
     - Estágio EX: processo para aplicar stall no caso do LWDI, unidade de adiantamento, MUX para adiantamentos, MUX para usar o extend, MUX para somar 0 no caso do LWDI.
     - Estágio MEM: processo para definir o seletor para usar como endereço a saída da ULA ou a saída da Memória, MUX para definir o endereço da Memória, lógica para definir o MemRead.
     - Estágio WB: processo para propagar o sinal ReadBack e o registrador de destino por mais um ciclo para usar no caso do LWDI.
+    - Sinais UP para utilizar no caso do LWDI, propagando-os por mais um ciclo, evitando assim penalizar as outras instruções.
 
 ### Arquivos criados
 
@@ -58,6 +59,7 @@ Para facilitar a correção é recomendado a utilização do gtkwave:
 ```
 gtkwave mips.vcd
 ```
+**Também está incluso nesse diretório o executável mips.gtkw que já contém a janela de sinais montada no gtkwave.**
 
 ## Bibliotecas Utilizadas
 
@@ -75,15 +77,15 @@ Código aberto, qualquer um pode usar para qualquer propósito.
 
 ## Reconhecimentos
 
-* GHDL não é produtivo nem intuitivo
-* GTKWave funciona bem mas não é intuitivo também
+* GHDL não é produtivo nem intuitivo.
+* GTKWave funciona bem mas não é intuitivo também.
 
 ## Desenvolvimento
 
-* Tempo estimado: 40 horas
+* Tempo estimado: 40 horas.
 * Ponto positivo: Entender o funcionamento de um microprocessador em baixo nível.
-* Pontos negativos: Implementar a lógica em VHDL, testar usando gtkwave e lidar com processamento em baixo nível.
-* Sugestões: Dar uma aula prática e objetiva sobre a linguagem VHDL e disponibilizar mais aulas de laboratório para o desenvolvimento do projeto. 
+* Pontos negativos: Implementar a lógica em VHDL, testar usando gtkwave e lidar com processamento em baixo nível. Também não conseguimos instalar o ghdl em nossas máquinas pessoais, tendo que utilizar ssh para compilação correta.
+* Sugestões: Dar uma aula prática e objetiva sobre a linguagem VHDL e disponibilizar mais aulas de laboratório para o desenvolvimento do projeto.
 
 ## Bugs
 
