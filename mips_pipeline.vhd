@@ -48,7 +48,7 @@ architecture arq_mips_pipeline of mips_pipeline is
 	signal EX_zero_branch: std_logic;
     signal EX_ALUOp: std_logic_vector(1 downto 0);
     signal EX_Operation: std_logic_vector(2 downto 0);
-	signal EX_zero32: reg32 := "00000000000000000000000000000000";--Entrada 0 para B no caso de LWDI
+	signal EX_zero32: reg32 := "00000000000000000000000000000000";-- Entrada 0 para B no caso de LWDI
 	signal EX_stall: std_logic := '0';
 
     
@@ -86,7 +86,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
     PC4: entity work.add32 port map (IF_pc, x"00000004", IF_pc4);
 
-    MX2: entity work.mux2 port map (ID_PCSrc, IF_pc4, ID_pc_branch, IF_pc_next);
+    MX2: entity work.mux2 port map (ID_PCSrc, IF_pc4, ID_pc_branch, IF_pc_next); -- Decide entre PC+4 ou Branch
 
     ROM_INST: entity work.rom32 port map (IF_pc, IF_instr);
 
@@ -123,7 +123,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
 	HAZARD: entity work.hazard_unit port map (EX_MemRead, EX_rt, ID_rs, ID_rt, ID_stall);
 
-	MX2_STALL: process(ID_stall,IF_pc)
+	MX2_STALL: process(ID_stall,IF_pc) 
     begin
 	if ID_stall = '0' then
 		IF_pc_enable <= '0';
@@ -133,8 +133,8 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	end if;
     end process;
 
-	UP_RegWrite <= WB_RegWrite or UP_ReadBack;
-	REGD: process(WB_RegRd,UP_RegRd,UP_ReadBack)
+	UP_RegWrite <= WB_RegWrite or UP_ReadBack; --Definir o RegWrite final
+	REGD: process(WB_RegRd,UP_RegRd,UP_ReadBack) --Definir o Rd final
 	begin
 		if UP_ReadBack = '1' then
 			UP_RegRd_final <= UP_RegRd;
@@ -201,11 +201,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	BRANCH_ADD: entity work.add32 port map (ID_pc4, ID_offset, ID_pc_branch);
 	ID_PCSrc <= ID_Branch and ID_Zero;
 
-
-
-
     CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ReadBack, ID_SelExt, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
-
 
     ID_EX_pip: process(clk)		    -- ID/EX Pipeline Register
     begin
@@ -266,7 +262,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              EX Stage
     -- ********************************************************************
 
-	MX2_STALL_EX: process(EX_ReadBack,IF_pc)
+	MX2_STALL_EX: process(EX_ReadBack,IF_pc) -- Decide stall para LWDI
     begin
 	if EX_ReadBack = '0' then
 		EX_stall <= '0';
@@ -281,22 +277,18 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 
 
 
-	FORWARD: entity work.forward_unit port map (MEM_RegRd, MEM_RegWrite, WB_RegRd, WB_RegWrite, WB_ReadBack, 
+	FORWARD: entity work.forward_unit port map (MEM_RegRd, MEM_RegWrite, WB_RegRd, WB_RegWrite, WB_ReadBack, -- Unidade de adiantamento
 												EX_rs, EX_rt, Ex_ALUSrcA, EX_ALUSrcB);
 
 	EX_funct <= EX_extend(5 downto 0);
-
-
-
 
 	ALU_MUX_A1: entity work.mux4 port map (EX_ALUSrcA, EX_A, WB_wd, MEM_ALUOut, MEM_memout, EX_alua); --Forward para a entrada A
 
 	ALU_MUX_B1: entity work.mux4 port map (EX_ALUSrcB, EX_B, WB_wd, MEM_ALUOut, MEM_memout, EX_alub); --Forward para a entrada B
 
-	ALU_MUX_B2: entity work.mux2 port map (EX_SelExt, EX_alub, EX_extend, EX_alub_ext); --Forward para a entrada B
+	ALU_MUX_B2: entity work.mux2 port map (EX_SelExt, EX_alub, EX_extend, EX_alub_ext); -- Decide se usa o extend 
 
 	ALU_MUX_B3: entity work.mux2 port map (EX_ReadBack, EX_alub_ext, EX_zero32, EX_alub_final); --Decide se soma 0 para o LWDI
-
 
 
 
@@ -305,7 +297,6 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	DEST_MUX2: entity work.mux2 generic map (5) port map (EX_RegDst, EX_rt, EX_rd, EX_RegRd);
 
 	ALU_c: entity work.alu_ctl port map (EX_ALUOp, EX_funct, EX_Operation);
-
 
 
 
@@ -357,7 +348,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              MEM Stage
 	-- ********************************************************************
 
-	MX2_STALL_MEM: process(MEM_ReadBack)
+	MX2_STALL_MEM: process(MEM_ReadBack) -- Decide seletor entre a saida ULA ou da Memória 
     begin
 	if MEM_ReadBack = '0' then
 		EX_SelAddress	<= '0';
@@ -367,10 +358,9 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     end process;
 
 
-	MEM_MUX2: entity work.mux2 port map (MEM_SelAddress, MEM_ALUOut, WB_memout, MEM_Address); --Decide o endereço da memória
+	MEM_MUX2: entity work.mux2 port map (MEM_SelAddress, MEM_ALUOut, WB_memout, MEM_Address); --Decide o endereço da memória entre ULA ou Memória
 
-
-	UP_MemRead <= MEM_MemRead or WB_ReadBack;
+	UP_MemRead <= MEM_MemRead or WB_ReadBack; -- Define o MemRead
 
 	MEM_ACCESS: entity work.mem32 port map (clk, UP_MemRead, MEM_MemWrite, MEM_Address, MEM_B, MEM_memout);
 	
@@ -400,7 +390,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     --                              WB Stage
 	-- ********************************************************************
 	
-	WB_pip: process (clk)
+	WB_pip: process (clk) -- Propaga os sinais ReadBack e RegRd por mais um ciclo 
     begin
 	if rising_edge(clk) then
 		if reset = '1' then
