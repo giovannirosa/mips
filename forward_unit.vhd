@@ -31,7 +31,7 @@ begin
                         
             elsif ((WB_RegWrite = '1') -- MEM HAZARD
                   and (WB_rd /="00000") 
-                  and (MEM_rd /= EX_rs)
+                  -- and (MEM_rd /= EX_rs)
                   and (WB_rd = EX_rs)) then
                         ForwardA <= b"01"; 
             else 
@@ -46,7 +46,7 @@ begin
                         
             elsif ((WB_RegWrite = '1') -- MEM HAZARD
                   and (WB_rd /="00000") 
-                  and (MEM_rd /= EX_rt)
+                  -- and (MEM_rd /= EX_rt)
                   and (WB_rd = EX_rt)) then
                         ForwardB <= b"01"; 
 
