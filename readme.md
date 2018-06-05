@@ -162,9 +162,7 @@ when 	"000001" => data_out <= "001000" & "00010" & "00010" & x"000A"; -- addi $2
 when 	"000010" => data_out <= "000100" & "00010" & "00001" & x"fffe"; -- beq $2, $1, -2
 ```
 
-### Limitações encontradas no projeto [BUGS]
-
-Não é possível processar duas instruções LWDI seguidas, deve haver ao menos 1 instrução entre as duas, senão o programa entra em loop.
+LWDI
 ```
 when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0001"; -- addi $1, $0, 1
 when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0002"; -- addi $2, $0, 2
@@ -173,3 +171,7 @@ when 	"000011" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 
 when 	"000100" => data_out <= "010011" & "00001" & "00100" & x"0000"; -- lwdi $4, $1
 when 	"000101" => data_out <= "010011" & "00010" & "00101" & x"0000"; -- lwdi $5, $2
 ```
+
+### Limitações encontradas no projeto [BUGS]
+
+Não encontramos nenhum bug aparente no projeto, porém existem vários testes que não puderam ser realizados por falta de tempo.
