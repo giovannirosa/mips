@@ -21,6 +21,20 @@ Existe um makefile neste diretório com os seguintes comandos disponíveis:
 * LW/SW/ADDI/BEQ:   opcode[6 bits] rs[5 bits] rt[5 bits] immediate[16 bits]
 * LWDI:             opcode[6 bits] rs[5 bits] rt[5 bits] unused[16 bits]
 
+### Explicando o Branch
+
+Nosso branch foi implementado operando sobre o PC+4, portanto para pular até a instrução anterior é preciso entrar com immediate = -2:
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"000A"; -- addi $1, $0, 10
+when 	"000001" => data_out <= "001000" & "00010" & "00010" & x"000A"; -- addi $2, $2, 10 <<<<<--------------
+when 	"000010" => data_out <= "000100" & "00010" & "00001" & x"fffe"; -- beq $2, $1, -2
+```
+
+Se for entrado immediate = -1, o programa ficará pulando para PC do branch indefinidamente, entrando em loop.
+Se for entrado immediate = 0, o branch não surtirá efeito algum.
+Se for entrado immediate = 1, o branch pulará para PC+8 normalmente.
+
+
 ### Arquivos alterados
 
 * basic_types.vhd: Foram inseridas as constantes ADDI e LWDI.
@@ -29,8 +43,8 @@ Existe um makefile neste diretório com os seguintes comandos disponíveis:
 * control_pipeline.vhd: Foram inseridos os sinais "ReadBack" [para controlar a instrução LWDI] e "SelExt" [para decidir se usa o extend na ULA]. Foram adicionados os casos de saída para ADDI e LWDI.
 * mips_pipeline.vhd: Foi modificado para suportar Hazard, Forward, Branch, ADDI e LWDI.
     - Estágio IF: MUX para decidir entre PC+4 ou branch e um processo para aplicar o stall.
-    - Estágio ID: unidade de hazard, processo para aplicar o stall, lógica para definir o RegWrite, processo para definir o registrador de destino final, processo para definir forward para branch, MUX para as entradas da ULA, cálculo do endereço do branch, lógica para PCSrc vir do branch.
-    - Estágio EX: processo para aplicar stall no caso do LWDI, unidade de adiantamento, MUX para adiantamentos, MUX para usar o extend, MUX para somar 0 no caso do LWDI.
+    - Estágio ID: unidade de hazard, processo para aplicar o stall, lógica para definir o RegWrite, processo para definir o registrador de destino final.
+    - Estágio EX: processo para aplicar stall no caso do LWDI, unidade de adiantamento, MUX para adiantamentos, MUX para usar o extend, MUX para somar 0 no caso do LWDI, cálculo do endereço do branch, lógica para PCSrc vir do branch.
     - Estágio MEM: processo para definir o seletor para usar como endereço a saída da ULA ou a saída da Memória, MUX para definir o endereço da Memória, lógica para definir o MemRead.
     - Estágio WB: processo para propagar o sinal ReadBack e o registrador de destino por mais um ciclo para usar no caso do LWDI.
     - Sinais UP para utilizar no caso do LWDI, propagando-os por mais um ciclo, evitando assim penalizar as outras instruções.
@@ -90,27 +104,31 @@ Código aberto, qualquer um pode usar para qualquer propósito.
 
 ## Testes
 
-### Casos de sucesso testados
+### Casos de teste bem-sucedidos
+
+ADDI:
 ```
 when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
 when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0001"; -- addi $2, $0, 1
 when 	"000010" => data_out <= "000000" & "00001" & "00010" & "00110" & "00000" & "100000"; -- add $6, $1, $2
 ```
-```
-when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
-when 	"000001" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
-```
+
+SW:
 ```
 when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
 when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0001"; -- addi $2, $0, 1
 when 	"000010" => data_out <= "101011" & "00010" & "00010" & x"0000"; -- sw $2, 0($2)
 when 	"000011" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
 ```
+
+LWDI:
 ```
 when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
 when 	"000001" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
 when 	"000010" => data_out <= "010011" & "00001" & "00100" & x"0000"; -- lwdi $4, $1
 ```
+
+LWDI:
 ```
 when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0001"; -- addi $1, $0, 1
 when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0002"; -- addi $2, $0, 2
@@ -121,7 +139,30 @@ when 	"000101" => data_out <= "000000" & "00000" & "00000" & "00000" & "00000" &
 when 	"000110" => data_out <= "010011" & "00010" & "00101" & x"0000"; -- lwdi $5, $2
 ```
 
-### Casos de fracasso testados [BUGS]
+BEQ:
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0001"; -- addi $1, $0, 1
+when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0002"; -- addi $2, $0, 2
+when 	"000010" => data_out <= "000000" & "00010" & "00001" & "00010" & "00000" & "100010"; -- sub $2, $2, $1
+when 	"000011" => data_out <= "000100" & "00010" & "00001" & x"fffe"; -- beq $2, $1, -2
+```
+
+BEQ:
+```
+when 	"000000" => data_out <= "000100" & "00000" & "00000" & x"0001"; -- beq $0, $0, 1
+when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0002"; -- addi $2, $0, 2
+when 	"000010" => data_out <= "101011" & "00010" & "00010" & x"0000"; -- sw $2, 0($2)
+when 	"000011" => data_out <= "010011" & "00010" & "00100" & x"0000"; -- lwdi $4, $2
+```
+
+BEQ:
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"000A"; -- addi $1, $0, 10
+when 	"000001" => data_out <= "001000" & "00010" & "00010" & x"000A"; -- addi $2, $2, 10
+when 	"000010" => data_out <= "000100" & "00010" & "00001" & x"fffe"; -- beq $2, $1, -2
+```
+
+### Limitações encontradas no projeto [BUGS]
 
 Não é possível processar duas instruções LWDI seguidas, deve haver ao menos 1 instrução entre as duas, senão o programa entra em loop.
 ```

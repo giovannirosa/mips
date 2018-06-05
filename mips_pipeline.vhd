@@ -27,14 +27,13 @@ architecture arq_mips_pipeline of mips_pipeline is
     -- ID Signal Declarations
 
     signal ID_instr, ID_pc4 :reg32;  -- pipeline register values from EX
-    signal ID_op, ID_funct, ID_op_mux: std_logic_vector(5 downto 0);
+    signal ID_op: std_logic_vector(5 downto 0);
     signal ID_rs, ID_rt, ID_rd: std_logic_vector(4 downto 0);
     signal ID_immed: std_logic_vector(15 downto 0);
-    signal ID_extend, ID_A, ID_B, ID_ALUOutlw, ID_alua, ID_alub, ID_ALUOut, ID_offset: reg32;
+    signal ID_extend, ID_A, ID_B: reg32;
     signal ID_RegWrite, ID_Branch, ID_RegDst, ID_MemtoReg, ID_MemRead, ID_MemWrite, ID_ReadBack, ID_SelExt: std_logic; --ID Control Signals
-    signal ID_ALUOp, ID_ALUSrcA, ID_ALUsrcB: std_logic_vector(1 downto 0);
-	signal ID_stall, ID_Zero: std_logic := '0';
-	signal ID_Operation: std_logic_vector(2 downto 0);
+    signal ID_ALUOp: std_logic_vector(1 downto 0);
+	signal ID_stall: std_logic := '0';
 
     -- EX Signals
 
@@ -95,7 +94,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     IF_s: process(clk)
     begin     			-- IF/ID Pipeline Register
     	if rising_edge(clk) then
-        	if reset = '1' then
+        	if reset = '1' or MEM_PCSrc = '1' then
             	ID_instr <= (others => '0');
             	ID_pc4   <= (others => '0');
 			elsif ID_stall = '0' and EX_stall = '0' then
@@ -156,57 +155,13 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
 	end if;
 	end process;
 
-	-- Forward_branch : process (ID_stall,ID_Branch,MEM_RegRd,ID_rt,ID_rs,EX_RegRd,MEM_RegWrite)--Forward para Branch
-	-- begin
-	-- 	if ID_stall /= '1'  then --Caso Hazard LW esperar próximo ciclo(para não pegar valores errados).
-	-- 		if (ID_Branch = '1') and (EX_RegRd /= "00000") and (EX_RegRd = ID_rs) then	
-	-- 			ID_ALUSrcA <= "01";
-
-	-- 		elsif (ID_Branch = '1' and MEM_RegRd /="00000") and (MEM_RegRd = ID_rs) then
-	-- 			ID_ALUSrcA <= "10";
-
-	-- 		else
-	-- 			ID_ALUSrcA <= "00";
-
-	-- 		end if;
-
-	-- 		if (ID_Branch = '1') and (EX_RegRd /= "00000") and (EX_RegRd = ID_rt) then
-	-- 			ID_ALUsrcB <= "01";
-		
-	-- 		elsif (ID_Branch = '1' and MEM_RegRd /="00000") and (MEM_RegRd = ID_rt) then
-	-- 			ID_ALUSrcB <= "10";
-	-- 		else
-	-- 			ID_ALUSrcB  <= "00";
-	-- 		end if;
-
-	-- 		if MEM_MemtoReg = '1' and MEM_RegRd /= "00000" and MEM_RegWrite = '1' then --Caso Hazard LW devo pegar saida da memória não da ALU.
-	-- 			ID_ALUOutlw <= MEM_memout;
-	-- 		else
-	-- 			ID_ALUOutlw <= MEM_ALUOut;
-	-- 		end if;
-	-- 	end if;
-	-- end process;
-
-	--ALU_MUX_B_Branch: entity work.mux3 port map (ID_ALUSrcB, ID_B, EX_ALUOut, ID_ALUOutlw, ID_alub);--Entrada B ULA para Branch
-
-	--ALU_MUX_A_Branch: entity work.mux3 port map (ID_ALUSrcA, ID_A, EX_ALUOut, ID_ALUOutlw, ID_alua);--Entrada A ULA para BRanch
-
-	--ALU_h_Branch: entity work.alu port map (ID_Operation, ID_alua, ID_alub, ID_ALUOut, ID_Zero);--ULA -> Comparador para Branch
-
-	--ALU_c_Branch: entity work.alu_ctl port map (ID_ALUOp, ID_funct, ID_Operation);
-
-
-	-- calcula endereço do branch
-	--SHIFT_EXT: entity work.shift_left port map (ID_extend, 2, ID_offset);
-	--BRANCH_ADD: entity work.add32 port map (ID_pc4, ID_offset, EX_pc_branch);
-	--EX_PCSrc <= ID_Branch and ID_Zero;
 
     CTRL: entity work.control_pipeline port map (ID_op, ID_RegDst, ID_ReadBack, ID_SelExt, ID_MemtoReg, ID_RegWrite, ID_MemRead, ID_MemWrite, ID_Branch, ID_ALUOp);
 
     ID_EX_pip: process(clk)		    -- ID/EX Pipeline Register
     begin
 	if rising_edge(clk) then
-        	if reset = '1' then
+        	if reset = '1' or MEM_PCSrc = '1' or EX_stall = '1' then
             	EX_RegDst   <= '0';
 	    		EX_ALUOp    <= (others => '0');
             	EX_ReadBack <= '0';
@@ -311,7 +266,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     EX_MEM_pip: process (clk)		    -- EX/MEM Pipeline Register
     begin
 	if rising_edge(clk) then
-        	if reset = '1' then
+        	if reset = '1' or MEM_PCSrc = '1' then
         
             		MEM_MemRead  <= '0';
             		MEM_MemWrite <= '0';
@@ -381,7 +336,7 @@ begin -- BEGIN MIPS_PIPELINE ARCHITECTURE
     MEM_WB_pip: process (clk)		-- MEM/WB Pipeline Register
     begin
 	if rising_edge(clk) then
-	        if reset = '1' then
+	        if reset = '1' or MEM_PCSrc = '1' then
             		WB_RegWrite <= '0';
             		WB_MemtoReg <= '0';
             		WB_ALUOut   <= (others => '0');

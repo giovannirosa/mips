@@ -1,19 +1,19 @@
 [*]
-[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Sat Jun 02 01:55:59 2018
+[*] GTKWave Analyzer v3.3.66 (w)1999-2015 BSI
+[*] Tue Jun  5 23:31:57 2018
 [*]
-[dumpfile] "C:\Users\giova\Desktop\Dev\Arquitetura\mips_pipeline\mips.vcd"
-[dumpfile_mtime] "Sat Jun 02 01:50:53 2018"
-[dumpfile_size] 248698
-[savefile] "C:\Users\giova\Desktop\Dev\Arquitetura\mips_pipeline\mips.gtkw"
+[dumpfile] "/home/bcc/grs14/Arquitetura/mips_pipeline/mips.vcd"
+[dumpfile_mtime] "Tue Jun  5 23:23:29 2018"
+[dumpfile_size] 256239
+[savefile] "/home/bcc/grs14/Arquitetura/mips_pipeline/mips.gtkw"
 [timestart] 0
-[size] 1366 705
+[size] 1920 1027
 [pos] -1 -1
-*-30.000000 2813000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-30.000000 2893000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [sst_width] 197
 [signals_width] 269
 [sst_expanded] 1
-[sst_vpaned_height] 266
+[sst_vpaned_height] 426
 @28
 clock
 @420
@@ -41,7 +41,6 @@ a.id_pc4[31:0]
 @28
 a.id_alusrca[1:0]
 a.id_alusrcb[1:0]
-a.id_pcsrc
 @200
 -EX
 @22
@@ -53,15 +52,12 @@ a.ex_regdst
 a.ex_aluop[1:0]
 @24
 a.ex_alua[31:0]
-@25
 a.ex_alub[31:0]
-@24
 a.ex_alub_final[31:0]
 a.ex_aluout[31:0]
 @28
 a.ex_stall
 a.ex_selext
-a.ex_zero_branch
 a.ex_readback
 a.ex_regwrite
 a.ex_alusrca[1:0]
@@ -70,6 +66,12 @@ a.ex_memread
 a.ex_memwrite
 a.ex_memtoreg
 a.ex_seladdress
+a.ex_zero
+a.ex_branch
+@420
+a.ex_pc4[31:0]
+a.ex_offset[31:0]
+a.ex_pc_branch[31:0]
 @200
 -MEM
 @24
@@ -84,9 +86,16 @@ a.mem_regwrite
 a.mem_regrd[4:0]
 @24
 a.mem_address[31:0]
+@25
+a.mem_b[31:0]
+@24
 a.mem_memout[31:0]
 @28
 a.mem_seladdress
+@420
+a.mem_pc_branch[31:0]
+@28
+a.mem_pcsrc
 @200
 -WB
 @28
