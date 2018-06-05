@@ -25,6 +25,7 @@ Existe um makefile neste diretório com os seguintes comandos disponíveis:
 
 * basic_types.vhd: Foram inseridas as constantes ADDI e LWDI.
 * rom32.vhd: Foi modificado para testes.
+* reg_bank.vhd: Foi modificado para ser possível a leitura de um dado que acabou de ser escrito, invertendo o clock.
 * control_pipeline.vhd: Foram inseridos os sinais "ReadBack" [para controlar a instrução LWDI] e "SelExt" [para decidir se usa o extend na ULA]. Foram adicionados os casos de saída para ADDI e LWDI.
 * mips_pipeline.vhd: Foi modificado para suportar Hazard, Forward, Branch, ADDI e LWDI.
     - Estágio IF: MUX para decidir entre PC+4 ou branch e um processo para aplicar o stall.
@@ -87,6 +88,47 @@ Código aberto, qualquer um pode usar para qualquer propósito.
 * Pontos negativos: Implementar a lógica em VHDL, testar usando gtkwave e lidar com processamento em baixo nível. Também não conseguimos instalar o ghdl em nossas máquinas pessoais, tendo que utilizar ssh para compilação correta.
 * Sugestões: Dar uma aula prática e objetiva sobre a linguagem VHDL e disponibilizar mais aulas de laboratório para o desenvolvimento do projeto.
 
-## Bugs
+## Testes
 
-Nenhum bug reconhecido nos testes, porém existem muitos casos que não foram testados.
+### Casos de sucesso testados
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
+when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0001"; -- addi $2, $0, 1
+when 	"000010" => data_out <= "000000" & "00001" & "00010" & "00110" & "00000" & "100000"; -- add $6, $1, $2
+```
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
+when 	"000001" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
+```
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
+when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0001"; -- addi $2, $0, 1
+when 	"000010" => data_out <= "101011" & "00010" & "00010" & x"0000"; -- sw $2, 0($2)
+when 	"000011" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
+```
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0002"; -- addi $1, $0, 2
+when 	"000001" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
+when 	"000010" => data_out <= "010011" & "00001" & "00100" & x"0000"; -- lwdi $4, $1
+```
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0001"; -- addi $1, $0, 1
+when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0002"; -- addi $2, $0, 2
+when 	"000010" => data_out <= "101011" & "00010" & "00010" & x"0000"; -- sw $2, 0($2)
+when 	"000011" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
+when 	"000100" => data_out <= "010011" & "00001" & "00100" & x"0000"; -- lwdi $4, $1
+when 	"000101" => data_out <= "000000" & "00000" & "00000" & "00000" & "00000" & "100000"; -- nop
+when 	"000110" => data_out <= "010011" & "00010" & "00101" & x"0000"; -- lwdi $5, $2
+```
+
+### Casos de fracasso testados [BUGS]
+
+Não é possível processar duas instruções LWDI seguidas, deve haver ao menos 1 instrução entre as duas, senão o programa entra em loop.
+```
+when 	"000000" => data_out <= "001000" & "00000" & "00001" & x"0001"; -- addi $1, $0, 1
+when 	"000001" => data_out <= "001000" & "00000" & "00010" & x"0002"; -- addi $2, $0, 2
+when 	"000010" => data_out <= "101011" & "00010" & "00010" & x"0000"; -- sw $2, 0($2)
+when 	"000011" => data_out <= "101011" & "00001" & "00001" & x"0000"; -- sw $1, 0($1)
+when 	"000100" => data_out <= "010011" & "00001" & "00100" & x"0000"; -- lwdi $4, $1
+when 	"000101" => data_out <= "010011" & "00010" & "00101" & x"0000"; -- lwdi $5, $2
+```
